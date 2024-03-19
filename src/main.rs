@@ -150,21 +150,21 @@ async fn gui() {
                 let font_size = 30.0;
 
                 let artificial_light_color = Color::from_rgba(block.initial_data[14], block.initial_data[16], block.initial_data[18], 255);
-        
+
                 draw_text(&format!("mouse {}, {}", hit_mouse_x, hit_mouse_y), text_x_position, 20.0, font_size, BLACK);
                 draw_text(&format!("block '{}'", block.get_name()), text_x_position, 40.0, font_size, color);
                 draw_text(&format!("background '{}'", block.get_back_wall_name()), text_x_position, 60.0, font_size, background_color);
-                draw_text(&format!("zone_type '{}'", block.initial_data[2]), text_x_position, 80.0, font_size, BLACK);
+                draw_text(&format!("zone_type '{}'", block.zone_type_index.get()), text_x_position, 80.0, font_size, BLACK);
                 draw_text(&format!("subtype '{}'", block.get_subtype_name()), text_x_position, 100.0, font_size, BLACK);
-                draw_text(&format!("partial_content_left '{}'", block.initial_data[4]), text_x_position, 120.0, font_size, BLACK);
+                draw_text(&format!("partial_content_left '{}'", block.partial_contents_left.get()), text_x_position, 120.0, font_size, BLACK);
                 draw_text(&format!("damage '{}'", block.gather_progress.get()), text_x_position, 140.0, font_size, BLACK);
-                draw_text(&format!("light '{}'", block.initial_data[6]), text_x_position, 160.0, font_size, BLACK);
-                draw_text(&format!("sun_light '{}'", block.initial_data[7]), text_x_position, 180.0, font_size, BLACK);
-                draw_text(&format!("season_offset '{}'", block.initial_data[8]), text_x_position, 200.0, font_size, BLACK);
-                draw_text(&format!("explored_fraction '{}'", block.initial_data[9]), text_x_position, 220.0, font_size, BLACK);
-                draw_text(&format!("terrain_slow_factor '{}'", block.initial_data[10]), text_x_position, 240.0, font_size, BLACK);
-                draw_text(&format!("foreground_contents '{}'", block.initial_data[11]), text_x_position, 260.0, font_size, BLACK);
-                draw_text(&format!("background_contents '{}'", block.initial_data[12]), text_x_position, 280.0, font_size, BLACK);
+                draw_text(&format!("light '{}'", block.light.get()), text_x_position, 160.0, font_size, BLACK);
+                draw_text(&format!("sun_light '{}'", block.sun_light.get()), text_x_position, 180.0, font_size, BLACK);
+                draw_text(&format!("season_offset '{}'", block.season_offset.get()), text_x_position, 200.0, font_size, BLACK);
+                draw_text(&format!("explored_fraction '{}'", block.explored_fraction.get()), text_x_position, 220.0, font_size, BLACK);
+                draw_text(&format!("terrain_slow_factor '{}'", block.terrain_slow_factor.get()), text_x_position, 240.0, font_size, BLACK);
+                draw_text(&format!("foreground_contents '{}'", block.foreground_contents.get()), text_x_position, 260.0, font_size, BLACK);
+                draw_text(&format!("background_contents '{}'", block.background_contents.get()), text_x_position, 280.0, font_size, BLACK);
                 draw_text(&format!("artificial_light_r '{}'", block.initial_data[14]), text_x_position, 300.0, font_size, artificial_light_color);
                 draw_text(&format!("artificial_light_g '{}'", block.initial_data[16]), text_x_position, 320.0, font_size, artificial_light_color);
                 draw_text(&format!("artificial_light_b '{}'", block.initial_data[18]), text_x_position, 340.0, font_size, artificial_light_color);
