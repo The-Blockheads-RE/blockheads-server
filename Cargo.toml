@@ -1,0 +1,17 @@
+[package]
+name = "blockheads-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.81"
+colored = "2.1.0"
+eframe = "0.26.2"
+egui = "0.26.2"
+enet = "0.3.0"
+inline_colorization = "0.1.6"
+libflate = "2.0.0"
+macroquad = "0.4.5"
+plist = "1.6.0"
