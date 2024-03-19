@@ -16,6 +16,8 @@ extern crate libflate;
 use enet::*;
 use anyhow::Context;
 
+use crate::handlers::KickReason::KickReason;
+
 use libflate::gzip::*;
 
 struct PacketInfo {
@@ -226,14 +228,9 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         //println!("data sent: {:x?}", data);
                         println!("[client]: sent ClientInformation!");
                     },
-                    0x26 => { // Rejection (sometimes disconnects) (Provides a single byte for the reason)
-                        // 0x02
-                        // - occurs consistently from blank username
-                        // - occurs consistently from same username as someone already ingame
-                        // 0x0b seems to be kick
-                        // 0x0c seems to be ban
-                        // 0x0e seems to be too long username
-                        // 0x06 seems to be connection rejection due to being banned
+                    0x26 => { // Server kicked client
+                        let kick_reason = KickReason::from_code(packet_info.raw_data[0]);
+                        println!("Server kicked client! Reason: {}", kick_reason.display_message);
                     },
                     0x01 => { // this is server information (gzipped)
                         println!("[client]: got ServerInformation!");
