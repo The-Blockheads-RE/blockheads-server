@@ -1,18 +1,18 @@
-use std::thread::sleep;
-use std::time::Duration;
+
+
 use std::{env, fs};
-use std::io::{Cursor, Read, Write};
+
 use std::net::Ipv4Addr;
 
 pub mod handlers;
 
-use handlers::{block, chunk::*};
+use handlers::{chunk::*};
 use handlers::server;
 use handlers::server::ServerInformation;
 use handlers::client;
 use handlers::client::ClientInformation;
 
-use libflate::gzip::*;
+
 
 // ClientInformation = 0x1F
 // KeepAlive = 0x18
@@ -23,8 +23,8 @@ use libflate::gzip::*;
 // UpdatePlayerActionsAndState = 0x20
 // UpdatePlayerInventory = 0x21
 
-use macroquad::{prelude::*, ui};
-use macroquad::ui::{hash, root_ui, widgets};
+use macroquad::{prelude::*};
+use macroquad::ui::{root_ui};
 
 const PIXEL_SIZE: f32 = 20.0;
 
@@ -33,7 +33,7 @@ async fn gui() {
     let chunk = Chunk::decode(blocks);
     chunk.print();
 
-    let text_x_position = ((CHUNK_WIDTH as f32) * PIXEL_SIZE);
+    let text_x_position = (CHUNK_WIDTH as f32) * PIXEL_SIZE;
         //root_ui().input_text(90, "input", &mut inp);
 
     loop {
@@ -111,7 +111,7 @@ async fn gui() {
                 let mut background_color = block.get_back_wall_color();
                 background_color.a = 0.7;
 
-                let pos = Vec2::new((f_x * PIXEL_SIZE), (f_y * PIXEL_SIZE) + 0.0);
+                let pos = Vec2::new(f_x * PIXEL_SIZE, (f_y * PIXEL_SIZE) + 0.0);
 
                 draw_rectangle(pos.x, pos.y, PIXEL_SIZE, PIXEL_SIZE, background_color);
                 draw_rectangle(pos.x, pos.y, PIXEL_SIZE, PIXEL_SIZE, block.get_color());

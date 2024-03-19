@@ -1,11 +1,11 @@
 use std::net::Ipv4Addr;
 use std::io::{BufReader, Cursor, Read, Write};
-use std::thread::{self, sleep};
+use std::thread::{sleep};
 use std::time::Duration;
 use enet::*;
 use anyhow::Context;
 
-use std::{fs, string};
+use std::{fs};
 
 use colored::Colorize;
 
@@ -212,7 +212,7 @@ fn send_data(data: &Vec<u8>, mut peer: Peer<'_, ()>, channel_id: u8) -> Result<(
 }
 
 fn encode_player_list() -> Vec<u8> {
-    let mut player_list_vec = Vec::new();
+    let player_list_vec = Vec::new();
     let mut fake_player_dict = plist::Dictionary::new();
     fake_player_dict.insert(
         String::from("alias"),
@@ -492,8 +492,8 @@ pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
                         let mut res = Vec::new();
                         decod.read_to_end(&mut res).unwrap();
 
-                        let mut cursor = Cursor::new(res);
-                        let mut p_list = plist::Value::from_reader(cursor).unwrap();
+                        let cursor = Cursor::new(res);
+                        let p_list = plist::Value::from_reader(cursor).unwrap();
 
                         let request_array = p_list.as_array().unwrap();
                         for element in request_array {
@@ -503,8 +503,8 @@ pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
                             let first_stuff = data[..71].to_vec();
                             let rest = data[72..].to_vec();
 
-                            let mut another_cursor = Cursor::new(rest);
-                            let mut plist_data = plist::Value::from_reader(another_cursor);
+                            let another_cursor = Cursor::new(rest);
+                            let plist_data = plist::Value::from_reader(another_cursor);
 
                             plist_data.unwrap().to_file_xml("./0x0a_inner").unwrap();
                         }

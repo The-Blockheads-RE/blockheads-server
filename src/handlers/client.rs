@@ -1,4 +1,4 @@
-use std::fmt::format;
+
 use std::io::{BufReader, Read, Write};
 use std::fs;
 use std::net::Ipv4Addr;
@@ -6,7 +6,7 @@ use std::io::Cursor;
 use std::thread::sleep;
 use std::time::Duration;
 use colored::Colorize;
-use inline_colorization::*;
+
 
 use plist::{Integer, Value};
 
