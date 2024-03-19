@@ -141,7 +141,7 @@ fn encode_server_info(serverinfo: &ServerInformation) -> Vec<u8> {
     return gzipped_data;
 }
 
-fn encode_world_fragment(x: u8, y: u8) -> Vec<u8> {
+fn encode_world_fragment(x: i8, y: i8) -> Vec<u8> {
     //let dummy_blocks = fs::read(format!("./block_{}_{}", x, y)).unwrap();
     //let dummy_light_blocks = fs::read(format!("./light_block_{}_{}", x, y)).unwrap();
     let dummy_blocks = fs::read("./modified_chunk").unwrap();
@@ -389,8 +389,8 @@ pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
                         //).unwrap();
                     },
                     0x03 => { // request world fragment
-                        let x = u8::from_be_bytes([packet_info.raw_data[0]]);
-                        let y = u8::from_be_bytes([packet_info.raw_data[1]]) - 20; // this fixes stuff i think
+                        let x = i8::from_be_bytes([packet_info.raw_data[0]]);
+                        let y = i8::from_be_bytes([packet_info.raw_data[1]]) - 20; // this fixes stuff i think
                         println!("[server]: fragment [x={x}], y={y}]");
 
                         let fragment_data = encode_world_fragment(x, y);
