@@ -14,6 +14,7 @@ use libflate::gzip::*;
 use plist::{Date, Dictionary, Value};
 use plist::Integer;
 use plist;
+use crate::handlers::WorldHeartbeat::WorldHeartbeat;
 
 struct PacketInfo {
     packet_type: u8,
@@ -477,8 +478,21 @@ pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
                         println!("0x0e data: [{}]", packet_info.hex_string);
                         send_data(&[0x0f, 0x0, 0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec(), sender.clone(), 0).unwrap();
                     },
-                    0x18 => { 
-                        send_data(&[0x17, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0].to_vec(), sender.clone(), 0).unwrap();
+                    0x18 => {
+                        let heartbeat = WorldHeartbeat {
+                            world_time: 92.0,
+                            no_rain_timer: 0.0,
+                            fast_forward: true,
+                            local_paused: false,
+                            all_paused: false,
+                            pvp_disabled: false,
+                            credit: 0.0
+                        };
+
+                        let mut data = heartbeat.encode();
+                        data.insert(0, 0x17);
+
+                        send_data(&data, sender.clone(), 0).unwrap();
                     },
                     0x0a => { // request create objects
                         let unknown_1 = packet_info.raw_data[0];
