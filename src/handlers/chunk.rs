@@ -1,5 +1,4 @@
 pub struct Chunk {
-    raw_data: Vec<u8>,
     pub blocks: Vec<Vec<Block>>
 }
 
@@ -15,12 +14,36 @@ use crate::handlers::block::BLOCK_SIZE;
 
 
 pub struct ChunkCache {
-    pub LoadedChunks: Cell<Chunk>
+    pub LoadedChunks: Vec<Vec<Chunk>>
 }
 
 impl Chunk {
-    pub fn new(&self) {
-        
+    pub fn new() -> Self { // Creates an empty chunk, filled with just air and light.
+        let mut blocks = Vec::new();
+
+        let mut y = 0;
+        while y < CHUNK_HEIGHT {
+            let mut x = 0;
+            let mut row = Vec::new();
+
+            while x < CHUNK_WIDTH {
+                let block = Block::new();
+                block.type_index.set(2);
+                block.sun_light.set(255);
+                block.light.set(255);
+
+                row.insert(x, block);
+
+                x += 1;
+            }
+            blocks.insert(y, row);
+
+            y += 1;
+        }
+
+        return Self {
+            blocks: blocks
+        };
     }
     pub fn encode(&self) -> Vec<u8> {
         let mut chunk_data = Vec::new();
@@ -36,12 +59,8 @@ impl Chunk {
             }
         };
 
-        chunk_data.insert(chunk_data.len(), 255);
-        chunk_data.insert(chunk_data.len(), 255);
-        chunk_data.insert(chunk_data.len(), 255);
-        chunk_data.insert(chunk_data.len(), 255);
-        chunk_data.insert(chunk_data.len(), 255);
-
+        let mut padding = [255; 5].to_vec(); // Required for the client to accept the chunk
+        chunk_data.append(&mut padding);
 
         return chunk_data;
     }
@@ -77,7 +96,6 @@ impl Chunk {
         //println!("{:#?}", blocks);
 
         return Chunk {
-            raw_data: raw_data,
             blocks: blocks
         }
     }

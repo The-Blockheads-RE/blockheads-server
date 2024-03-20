@@ -8,7 +8,7 @@ pub mod handlers;
 
 use handlers::{chunk::*};
 use handlers::server;
-use handlers::server::ServerInformation;
+use handlers::ServerInformation::ServerInformation;
 use handlers::client;
 use handlers::client::ClientInformation;
 
@@ -240,7 +240,7 @@ async fn main() {
                 ServerInformation {
                     world_name: String::from("server.rs"),
                     world_time: 3560.7666880898178,
-                    welcome_message: String::from("connected yay!!!"),
+                    welcome_message: Some(String::from("connected yay!!!")),
                     start_portal_pos_x: 11695,
                     start_portal_pos_y: 743,
                     highest_point_x: 13970,

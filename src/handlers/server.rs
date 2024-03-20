@@ -6,6 +6,7 @@ use enet::*;
 use anyhow::Context;
 
 use std::{fs};
+use std::path::Path;
 
 use colored::Colorize;
 
@@ -14,6 +15,8 @@ use libflate::gzip::*;
 use plist::{Date, Dictionary, Value};
 use plist::Integer;
 use plist;
+use crate::handlers::chunk::Chunk;
+use crate::handlers::ServerInformation::ServerInformation;
 use crate::handlers::WorldHeartbeat::WorldHeartbeat;
 
 struct PacketInfo {
@@ -21,24 +24,6 @@ struct PacketInfo {
     raw_data: Vec<u8>,
     hex_string: String,
     channel_id: u8
-}
-
-pub struct ServerInformation {
-    pub world_name: String,
-    pub world_time: f64,
-    pub welcome_message: String,
-    pub start_portal_pos_x: i64,
-    pub start_portal_pos_y: i64,
-    pub highest_point_x: i64,
-    pub highest_point_y: i64,
-    pub credit: f64,
-    pub random_seed: i64,
-    pub no_rain_timer: f64,
-    pub portal_level: i64,
-    pub save_id: String,
-    pub expert_mode: bool,
-    pub minor_version: i64,
-    pub world_width_macro: i64
 }
 
 fn bytes_to_hex_string(data: &Vec<u8>) -> String {
@@ -63,88 +48,18 @@ fn decode_client_info(raw_data: Vec<u8>) -> Dictionary {
     return dict;
 }
 
-fn encode_server_info(serverinfo: &ServerInformation) -> Vec<u8> {
-    let mut server_information_plist = plist::Dictionary::new();
-                        
-    server_information_plist.insert(
-        String::from("worldName"),
-        Value::String(serverinfo.world_name.clone())
-    );
-    server_information_plist.insert(
-        String::from("worldTime"),
-        Value::Real(serverinfo.world_time)
-    );
-    server_information_plist.insert(
-        String::from("welcomeMessage"),
-        Value::String(serverinfo.welcome_message.clone())
-    );
-    server_information_plist.insert(
-        String::from("startPortalPos.x"),
-        Value::Integer(Integer::from(serverinfo.start_portal_pos_x))
-    );
-    server_information_plist.insert(
-        String::from("startPortalPos.y"),
-        Value::Integer(Integer::from(serverinfo.start_portal_pos_y))
-    );
-    server_information_plist.insert(
-        String::from("highestPoint.x"),
-        Value::Integer(Integer::from(serverinfo.highest_point_x))
-    );
-    server_information_plist.insert(
-        String::from("highestPoint.y"),
-        Value::Integer(Integer::from(serverinfo.highest_point_y))
-    );
-    server_information_plist.insert(
-        String::from("credit"),
-        Value::Real(serverinfo.credit)
-    );
-    server_information_plist.insert(
-        String::from("randomSeed"),
-        Value::Integer(Integer::from(serverinfo.random_seed))
-    );
-    server_information_plist.insert(
-        String::from("noRainTimer"),
-        Value::Real(serverinfo.no_rain_timer)
-    );
-    server_information_plist.insert(
-        String::from("portalLevel"),
-        Value::Integer(Integer::from(serverinfo.portal_level))
-    );
-    server_information_plist.insert(
-        String::from("saveID"),
-        Value::String(serverinfo.save_id.clone())
-    );
-    server_information_plist.insert(
-        String::from("expertMode"),
-        Value::Boolean(serverinfo.expert_mode)
-    );
-    server_information_plist.insert(
-        String::from("minorVersion"),
-        Value::Integer(Integer::from(serverinfo.minor_version))
-    );
-    server_information_plist.insert(
-        String::from("worldWidthMacro"),
-        Value::Integer(Integer::from(serverinfo.world_width_macro))
-    );
-
-    let mut cursor: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-    plist::to_writer_binary(&mut cursor, &server_information_plist).unwrap();
-    plist::to_file_xml("./tried_serverinfo", &server_information_plist).unwrap();
-    let uncompressed_data = cursor.into_inner();
-
-    let mut encoder: Encoder<Vec<u8>> = Encoder::new(Vec::new()).unwrap();
-    encoder.write_all(&uncompressed_data).unwrap();
-
-    let mut gzipped_data = encoder.finish().into_result().unwrap();
-    gzipped_data.insert(0, 0x01);
-
-    return gzipped_data;
-}
-
 fn encode_world_fragment(x: i8, y: i8) -> Vec<u8> {
     //let dummy_blocks = fs::read(format!("./block_{}_{}", x, y)).unwrap();
     //let dummy_light_blocks = fs::read(format!("./light_block_{}_{}", x, y)).unwrap();
-    let dummy_blocks = fs::read("./modified_chunk").unwrap();
+
+    let chunk_path = format!("./block_{}_{}", x, y);
+    let dummy_blocks = if Path::new(chunk_path.as_str()).exists() { // Found a saved chunk
+        fs::read(chunk_path).unwrap()
+    } else { // Empty air chunk
+        Chunk::new().encode()
+    };
+
+    //let dummy_blocks = fs::read("./modified_chunk").unwrap();
     let dummy_light_blocks = fs::read("./light_block_109_27").unwrap();
 
     //print_chunk(dummy_blocks.clone());
@@ -313,7 +228,7 @@ fn print_chunk(chunk: Vec<u8>) {
 }
 
 
-pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
+pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
     let enet = Enet::new().context("could not initialize ENet").unwrap();
 
     let address = Address::new(ip, port);
@@ -368,7 +283,8 @@ pub fn start(ip: Ipv4Addr, port: u16, serverinfo: ServerInformation) {
 
                         // send server information    
 
-                        let server_info_data = encode_server_info(&serverinfo);
+                        let mut server_info_data = server_info.encode();
+                        server_info_data.insert(0, 0x01);
                         send_data(&server_info_data, sender.clone(), 0).unwrap();
 
                         let player_list_data: Vec<u8> = encode_player_list();

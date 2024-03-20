@@ -19,6 +19,7 @@ use anyhow::Context;
 use crate::handlers::KickReason::KickReason;
 
 use libflate::gzip::*;
+use crate::handlers::ServerInformation::ServerInformation;
 
 struct PacketInfo {
     packet_type: u8,
@@ -235,13 +236,8 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                     0x01 => { // this is server information (gzipped)
                         println!("[client]: got ServerInformation!");
 
-                        let mut decoder = Decoder::new(&packet_info.raw_data[..]).unwrap();
-                        let mut server_info_buffer = Vec::new();
-                        decoder.read_to_end(&mut server_info_buffer).unwrap();
-
-                        //let cursor = Cursor::new(server_info_buffer);
-
-                        //let server_information_plist = plist::Value::from_reader(reader).unwrap();
+                        let server_info = ServerInformation::decode(packet_info.raw_data);
+                        println!("[client]: World name: '{}'", server_info.world_name);
 
                         // request a fragment
                         let fragment_req = [0x03, 0x6d, 0x2d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
