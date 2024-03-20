@@ -328,17 +328,24 @@ impl Block {
             initial_data: raw_data
         }
     }
-    //pub fn new() -> Self {
-    //    return Self {
-    //        type_index: Cell::new(2), // air
-    //        back_wall_type_index: 2,
-    //        sub_type_index: 0,
-    //        gather_progress: 0,
-    //        partial_contents_left: 0,
-    //        foreground_contents: 0,
-    //        initial_data: [0; BLOCK_SIZE].to_vec()
-    //    }
-    //}
+    pub fn new() -> Self { // Creates an empty block
+        return Self {
+            type_index: Cell::new(0), // air
+            back_wall_type_index: Cell::new(0),
+            zone_type_index: Cell::new(1),
+            sub_type_index: Cell::new(0),
+            partial_contents_left: Cell::new(0),
+            gather_progress: Cell::new(0),
+            light: Cell::new(0),
+            sun_light: Cell::new(0),
+            season_offset: Cell::new(0),
+            explored_fraction: Cell::new(0),
+            terrain_slow_factor: Cell::new(0),
+            foreground_contents: Cell::new(0),
+            background_contents: Cell::new(0),
+            initial_data: [0; BLOCK_SIZE].to_vec(),
+        }
+    }
 }
 
 impl Block {
