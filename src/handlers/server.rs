@@ -5,17 +5,21 @@ use std::time::Duration;
 use enet::*;
 use anyhow::Context;
 
+use base64::{engine, alphabet, Engine as _};
+
 use std::{fs};
 use std::path::Path;
+use base64::prelude::BASE64_STANDARD;
 
 use colored::Colorize;
 
 use libflate::gzip::*;
 
-use plist::{Date, Dictionary, Value};
+use plist::{Data, Date, Dictionary, Value};
 use plist::Integer;
 use plist;
 use crate::handlers::chunk::Chunk;
+use crate::handlers::DynamicObject::DynamicObject;
 use crate::handlers::ServerInformation::ServerInformation;
 use crate::handlers::WorldHeartbeat::WorldHeartbeat;
 
@@ -265,7 +269,7 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                     channel_id: channel_id
                 };
 
-                println!("Received '{:02x} on channel {}", packet_info.packet_type, packet_info.channel_id);
+                println!("Received '{:02x}({}) on channel {}", packet_info.packet_type, packet_info.packet_type, packet_info.channel_id);
                 //println!(
                 //    "[server]: got packet type '{:02x}' on channel {}, hex content: {}",
                 //    packet_info.packet_type,
@@ -295,6 +299,10 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                         send_data(&obj_data, sender.clone(), 0).unwrap();
 
                         let obj_data: Vec<u8> = [0x07, 0x00, 0x84, 0x34, 0x46, 0xc8, 0xf5, 0x02, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
+                        send_data(&obj_data, sender.clone(), 0).unwrap();
+                        send_data(&obj_data, sender.clone(), 0).unwrap();
+                        send_data(&obj_data, sender.clone(), 0).unwrap();
+                        send_data(&obj_data, sender.clone(), 0).unwrap();
                         send_data(&obj_data, sender.clone(), 0).unwrap();
 
   
@@ -374,18 +382,33 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                         send_data(&data, sender.clone(), 0).unwrap();
 
                                                 // weird thing
-                        let blockhead_files_dict = plist::Dictionary::new();
+                        let dummy_entry = "H4sIAAAAAAAAE0sqyMksLjEwuMjIFJdSmZeYm5nsn5SVmlxSvICDW4oBDBgZITQDMwMqkAYAPiHLuD4AAAA=";
+                        let mut dummy_buf = Vec::new();
+                        BASE64_STANDARD.decode_vec(dummy_entry, &mut dummy_buf).unwrap();
+
+                        let mut blockhead_files_dict = plist::Dictionary::new();
+                        blockhead_files_dict.insert("d972d19b9bb03dc2429ce6337165aa85_blockheads".to_owned(), Value::Data(dummy_buf));
+
+                        let mut dummy_found_items = Vec::new();
+                        BASE64_STANDARD.decode_vec("YnBsaXN0MDDUAQIDBAUGBwhYJG9iamVjdHNZJGFyY2hpdmVyWCR2ZXJzaW9uVCR0b3ClCQoLDA1fEA9OU0tleWVkQXJjaGl2ZXISAAGGoNEOD1UkbnVsbNMQERITFBXSERYXGNIZGhsc0hkaHR5aZm91bmRJdGVtc4ABXE5TUmFuZ2VDb3VudFYkY2xhc3NbTlNSYW5nZURhdGEQAoAEgAJXTlMuZGF0YYADRgCuAoAISFgkY2xhc3Nlc1okY2xhc3NuYW1loxwfIF1OU011dGFibGVEYXRhox4hIF8QEU5TTXV0YWJsZUluZGV4U2V0Vk5TRGF0YVhOU09iamVjdFpOU0luZGV4U2V0AAgAEQAaACQALQAyADgASgBPAFIAWABfAGQAaQBuAHkAewCIAI8AmwCdAJ8AoQCpAKsAsgC7AMYAygDYANwA8AD3AQAAAAAAAAACAQAAAAAAAAAiAAAAAAAAAAAAAAAAAAABCw==".to_owned(), &mut dummy_found_items).unwrap();
+
+                        let mut dummy_found_items_v2 = Vec::new();
+                        BASE64_STANDARD.decode_vec("H4sIAAAAAAAAA+uXE2cAAT1GIMHCwOABpACHU2jKFAAAAA==".to_owned(), &mut dummy_found_items_v2).unwrap();
 
                         let mut blockheads_data_dict = plist::Dictionary::new();
                         blockheads_data_dict.insert(
                             String::from("blockheadFiles"),
                             Value::Dictionary(blockhead_files_dict)
                         );
+                        blockheads_data_dict.insert("foundItems".to_owned(), Value::Data(dummy_found_items));
+                        blockheads_data_dict.insert("foundItems_v2".to_owned(), Value::Data(dummy_found_items_v2));
 
                         let mut cursor = Cursor::new(Vec::new());
                         plist::to_writer_binary(&mut cursor, &mut blockheads_data_dict).unwrap();
                         let mut data = cursor.into_inner();
                         data.insert(0, 0x06);
+
+                        plist::to_file_xml("./6_sent.xml", &blockheads_data_dict);
 
                         send_data(&data, sender.clone(), 0).unwrap();
                     },
@@ -410,12 +433,43 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
 
                         send_data(&data, sender.clone(), 0).unwrap();
                     },
-                    0x0a => { // request create objects
-                        let unknown_1 = packet_info.raw_data[0];
-                        let unknown_2 = packet_info.raw_data[1];
-                        //let unknown_3 = packet_info.raw_data[2];
+                    0x0b => { // unknown
+                        let first_byte = packet_info.raw_data[0];
 
-                        println!("client wants to create objects! {:02x?}", packet_info.raw_data);
+                        let curs = Cursor::new(&packet_info.raw_data[1..]);
+                        let mut decod = Decoder::new(curs).unwrap();
+                        let mut res = Vec::new();
+                        decod.read_to_end(&mut res).unwrap();
+
+                        let cursor = Cursor::new(res);
+                        let p_list = plist::Value::from_reader(cursor).unwrap();
+
+                        //println!("first byte: {first_byte}");
+
+                        let request_array = p_list.as_array().unwrap();
+                        for element in request_array {
+                            let data = element.as_data().unwrap();
+                            //println!("0x0b inner data: {:02x?}", element);
+                        };
+                    }
+                    0x20 => { // UpdatePlayerActionsAndState
+                        let curs = Cursor::new(&packet_info.raw_data);
+                        let mut decod = Decoder::new(curs).unwrap();
+                        let mut res = Vec::new();
+                        decod.read_to_end(&mut res).unwrap();
+
+                        let cursor = Cursor::new(res);
+                        let p_list = plist::Value::from_reader(cursor).unwrap();
+                        let dict = p_list.as_dictionary().unwrap();
+
+                        //println!("0x20 decoded: {:?}", dict);
+                        p_list.to_file_xml("./0x20.xml").unwrap()
+                    }
+                    0x0a => { // request create dynamic objects
+                        let dynamic_object_type_id = packet_info.raw_data[0];
+                        let string_object_type = DynamicObject::get_name_from_id(dynamic_object_type_id);
+
+                        println!("client wants to create dynamic objects! [type:{}]", string_object_type);
 
                         let curs = Cursor::new(&packet_info.raw_data[1..]);
                         let mut decod = Decoder::new(curs).unwrap();
@@ -428,7 +482,7 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                         let request_array = p_list.as_array().unwrap();
                         for element in request_array {
                             let data = element.as_data().unwrap();
-                            println!("request data: {:02x?}", element);
+                            println!("request data: {:02x?}", data);
 
                             let first_stuff = data[..71].to_vec();
                             let rest = data[72..].to_vec();
