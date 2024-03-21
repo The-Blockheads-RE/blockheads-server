@@ -287,8 +287,8 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         let mut light_blocks = Vec::new();
                         decoder.read_to_end(&mut light_blocks).unwrap();
                         
-                        fs::write( format!("./block_{}_{}", x, y), &blocks).unwrap();
-                        fs::write(format!("./light_block_{}_{}", x, y), light_blocks).unwrap();
+                        //fs::write( format!("./block_{}_{}", x, y), &blocks).unwrap();
+                        //fs::write(format!("./light_block_{}_{}", x, y), light_blocks).unwrap();
 
                         //println!("blocks: {:?}", blocks_str);
                         //println!("light blocks: {:?}", light_blocks);
@@ -347,13 +347,13 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         let mut cursor = Cursor::new(buffer);
                         let property_list = plist::Value::from_reader(&mut cursor).unwrap();
 
-                        //println!("unknown value: {:02x}", unknown_value);
+                        println!("unknown value: {:02x}", unknown_value);
                         let property_array = property_list.as_array().unwrap();
 
                         //println!("{}", packet_info.hex_string);
 
                         for data in property_array {
-                            //println!("{:02x?}", data.as_data().unwrap());
+                            println!("{:02x?}", data.as_data().unwrap());
                         }
                     }
                     0x09 => {
