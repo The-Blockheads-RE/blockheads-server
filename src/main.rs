@@ -164,7 +164,13 @@ async fn gui() {
 async fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let mode = &args[1];
+    let mode = match args.get(1) {
+        Some(mode) => mode,
+        None => {
+            println!("Mode argument should be supplied! (gui/client/server)");
+            std::process::exit(1);
+        }
+    };
 
     match mode.as_str() {
         "server" => {
@@ -210,6 +216,9 @@ async fn main() {
         "gui" => {
             gui().await;
         }
-        _ => println!("invalid mode")
+        _ => {
+            println!("Invalid mode argument suppled! Should be: (gui/client/server)");
+            std::process::exit(1);
+        }
     }
 }
