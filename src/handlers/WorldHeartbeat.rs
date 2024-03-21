@@ -1,3 +1,4 @@
+#[derive(std::fmt::Debug)]
 pub struct WorldHeartbeat {
     pub world_time: f32,
     pub no_rain_timer: f32,
@@ -12,9 +13,9 @@ impl WorldHeartbeat {
     pub fn encode(&self) -> Vec<u8> {
         let mut encoded_data = Vec::new();
 
-        let mut world_timer_bytes = self.world_time.to_be_bytes().to_vec();
-        let mut no_rain_timer_bytes = self.no_rain_timer.to_be_bytes().to_vec();
-        let mut credit_bytes = self.credit.to_be_bytes().to_vec();
+        let mut world_timer_bytes = self.world_time.to_le_bytes().to_vec();
+        let mut no_rain_timer_bytes = self.no_rain_timer.to_le_bytes().to_vec();
+        let mut credit_bytes = self.credit.to_le_bytes().to_vec();
 
         encoded_data.append(&mut world_timer_bytes);
         encoded_data.append(&mut no_rain_timer_bytes);
@@ -30,13 +31,13 @@ impl WorldHeartbeat {
     }
     pub fn decode(raw_data: Vec<u8>) -> Self {
         return Self {
-            world_time: f32::from_be_bytes([raw_data[0], raw_data[1], raw_data[2], raw_data[3]]),
-            no_rain_timer: f32::from_be_bytes([raw_data[4], raw_data[5], raw_data[6], raw_data[7]]),
+            world_time: f32::from_le_bytes([raw_data[0], raw_data[1], raw_data[2], raw_data[3]]),
+            no_rain_timer: f32::from_le_bytes([raw_data[4], raw_data[5], raw_data[6], raw_data[7]]),
             fast_forward: raw_data[8] == 1,
             local_paused: raw_data[9] == 1,
             all_paused: raw_data[10] == 1,
             pvp_disabled: raw_data[11] == 1,
-            credit: f32::from_be_bytes([raw_data[12], raw_data[13], raw_data[14], raw_data[15]])
+            credit: f32::from_le_bytes([raw_data[12], raw_data[13], raw_data[14], raw_data[15]])
         }
     }
 }
