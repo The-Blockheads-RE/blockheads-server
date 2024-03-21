@@ -293,24 +293,6 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
 
                         let player_list_data: Vec<u8> = encode_player_list();
                         send_data(&player_list_data, sender.clone(), 0).unwrap();
-
-                        sleep(Duration::from_secs(3));
-                        let obj_data: Vec<u8> = [0x07, 0xde, 0x80, 0x34, 0x46, 0xa9, 0xf2, 0x02, 0x46, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-
-                        let obj_data: Vec<u8> = [0x07, 0x00, 0x84, 0x34, 0x46, 0xc8, 0xf5, 0x02, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
-
-  
-                        //send_data(
-                        //    &[].to_vec(),
-                        //    sender.clone(),
-                        //    0
-                        //).unwrap();
                     },
                     0x03 => { // request world fragment
                         let x = i8::from_be_bytes([packet_info.raw_data[0]]);
