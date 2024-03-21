@@ -13,8 +13,18 @@ pub struct Block {
     pub terrain_slow_factor: Cell<u8>,
     pub foreground_contents: Cell<u8>,
     pub background_contents: Cell<u8>,
-
-    pub initial_data: Vec<u8>
+    pub artificial_light_r: Cell<u16>,
+    pub artificial_light_g: Cell<u16>,
+    pub artificial_light_b: Cell<u16>,
+    pub artificial_heat: Cell<i16>,
+    pub on_fire: Cell<u8>,
+    pub dynamic_object_owner_old: Cell<u32>,
+    pub paint_front: Cell<u16>,
+    pub paint_top: Cell<u16>,
+    pub paint_right: Cell<u16>,
+    pub paint_left: Cell<u16>,
+    pub paint_bottom: Cell<u16>,
+    pub dynamic_object_owner: Cell<u64>,
 }
 
 use std::cell::Cell;
@@ -294,6 +304,20 @@ impl Block {
     pub fn encode(&self) -> Vec<u8> {
         let mut encoded_block = [0; 64].to_vec();
 
+        let artificial_light_r_bytes = self.artificial_light_r.get().to_be_bytes();
+        let artificial_light_g_bytes = self.artificial_light_g.get().to_be_bytes();
+        let artificial_light_b_bytes = self.artificial_light_b.get().to_be_bytes();
+        let artificial_heat_bytes = self.artificial_heat.get().to_be_bytes();
+
+        let dynamic_object_owner_old_bytes = self.dynamic_object_owner_old.get().to_be_bytes();
+        let dynamic_object_owner_bytes = self.dynamic_object_owner.get().to_be_bytes();
+
+        let paint_front_bytes = self.paint_front.get().to_be_bytes();
+        let paint_top_bytes = self.paint_top.get().to_be_bytes();
+        let paint_right_bytes = self.paint_right.get().to_be_bytes();
+        let paint_left_bytes = self.paint_left.get().to_be_bytes();
+        let paint_bottom_bytes = self.paint_bottom.get().to_be_bytes();
+
         encoded_block[0] = self.type_index.get();
         encoded_block[1] = self.back_wall_type_index.get();
         encoded_block[2] = self.zone_type_index.get();
@@ -307,6 +331,43 @@ impl Block {
         encoded_block[10] = self.terrain_slow_factor.get();
         encoded_block[11] = self.foreground_contents.get();
         encoded_block[12] = self.background_contents.get();
+
+        encoded_block[13] = artificial_light_r_bytes[0]; // R
+        encoded_block[14] = artificial_light_r_bytes[1];
+        encoded_block[15] = artificial_light_g_bytes[0]; // G
+        encoded_block[16] = artificial_light_g_bytes[1];
+        encoded_block[17] = artificial_light_b_bytes[0]; // B
+        encoded_block[18] = artificial_light_b_bytes[1];
+
+        encoded_block[19] = artificial_heat_bytes[0];
+        encoded_block[20] = artificial_heat_bytes[1];
+
+        encoded_block[21] = self.on_fire.get();
+
+        encoded_block[22] = dynamic_object_owner_old_bytes[0];
+        encoded_block[23] = dynamic_object_owner_old_bytes[1];
+        encoded_block[24] = dynamic_object_owner_old_bytes[2];
+        encoded_block[25] = dynamic_object_owner_old_bytes[3];
+
+        encoded_block[26] = paint_front_bytes[0];
+        encoded_block[27] = paint_front_bytes[1];
+        encoded_block[28] = paint_top_bytes[0];
+        encoded_block[29] = paint_top_bytes[1];
+        encoded_block[30] = paint_right_bytes[0];
+        encoded_block[31] = paint_right_bytes[1];
+        encoded_block[32] = paint_left_bytes[0];
+        encoded_block[33] = paint_left_bytes[1];
+        encoded_block[34] = paint_bottom_bytes[0];
+        encoded_block[35] = paint_bottom_bytes[1];
+
+        encoded_block[36] = dynamic_object_owner_bytes[0];
+        encoded_block[37] = dynamic_object_owner_bytes[1];
+        encoded_block[38] = dynamic_object_owner_bytes[2];
+        encoded_block[39] = dynamic_object_owner_bytes[3];
+        encoded_block[40] = dynamic_object_owner_bytes[4];
+        encoded_block[41] = dynamic_object_owner_bytes[5];
+        encoded_block[42] = dynamic_object_owner_bytes[6];
+        encoded_block[43] = dynamic_object_owner_bytes[7];
 
         return encoded_block;
     }
@@ -324,15 +385,26 @@ impl Block {
             explored_fraction: Cell::new(raw_data[9]),
             terrain_slow_factor: Cell::new(raw_data[10]),
             foreground_contents: Cell::new(raw_data[11]),
-            background_contents: Cell::new(raw_data[11]),
-            initial_data: raw_data
+            background_contents: Cell::new(raw_data[12]),
+            artificial_light_r: Cell::new(u16::from_be_bytes([raw_data[13], raw_data[14]])),
+            artificial_light_g: Cell::new(u16::from_be_bytes([raw_data[15], raw_data[16]])),
+            artificial_light_b: Cell::new(u16::from_be_bytes([raw_data[17], raw_data[18]])),
+            artificial_heat: Cell::new(i16::from_be_bytes([raw_data[19], raw_data[20]])),
+            on_fire: Cell::new(raw_data[21]),
+            dynamic_object_owner_old: Cell::new(u32::from_be_bytes([raw_data[22], raw_data[23], raw_data[24], raw_data[25]])),
+            paint_front: Cell::new(u16::from_be_bytes([raw_data[26], raw_data[27]])),
+            paint_top: Cell::new(u16::from_be_bytes([raw_data[28], raw_data[29]])),
+            paint_right: Cell::new(u16::from_be_bytes([raw_data[30], raw_data[31]])),
+            paint_left: Cell::new(u16::from_be_bytes([raw_data[32], raw_data[33]])),
+            paint_bottom: Cell::new(u16::from_be_bytes([raw_data[34], raw_data[35]])),
+            dynamic_object_owner: Cell::new(u64::from_be_bytes([raw_data[36], raw_data[37], raw_data[38], raw_data[39], raw_data[40], raw_data[41], raw_data[42], raw_data[43]])),
         }
     }
     pub fn new() -> Self { // Creates an empty block
         return Self {
-            type_index: Cell::new(0), // air
+            type_index: Cell::new(0),
             back_wall_type_index: Cell::new(0),
-            zone_type_index: Cell::new(1),
+            zone_type_index: Cell::new(0),
             sub_type_index: Cell::new(0),
             partial_contents_left: Cell::new(0),
             gather_progress: Cell::new(0),
@@ -343,7 +415,18 @@ impl Block {
             terrain_slow_factor: Cell::new(0),
             foreground_contents: Cell::new(0),
             background_contents: Cell::new(0),
-            initial_data: [0; BLOCK_SIZE].to_vec(),
+            artificial_light_r: Cell::new(0u16),
+            artificial_light_g: Cell::new(0u16),
+            artificial_light_b: Cell::new(0u16),
+            artificial_heat: Cell::new(0i16),
+            on_fire: Cell::new(0),
+            dynamic_object_owner_old: Cell::new(0u32),
+            paint_front: Cell::new(0u16),
+            paint_top: Cell::new(0u16),
+            paint_right: Cell::new(0u16),
+            paint_left: Cell::new(0u16),
+            paint_bottom: Cell::new(0u16),
+            dynamic_object_owner: Cell::new(0u64)
         }
     }
 }
