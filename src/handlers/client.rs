@@ -19,7 +19,10 @@ use anyhow::Context;
 use crate::handlers::KickReason::KickReason;
 
 use libflate::gzip::*;
+use crate::handlers::Compression::GZIP;
+use crate::handlers::dynamic_objects::DynamicObjectHandler;
 use crate::handlers::ServerInformation::ServerInformation;
+use crate::handlers::WorldHeartbeat::WorldHeartbeat;
 
 struct PacketInfo {
     packet_type: u8,
@@ -179,7 +182,7 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         client_information_plist.to_file_xml("./plist.xml").unwrap();
     
                         let world_id = dict.get("worldID").unwrap().as_string().unwrap();
-                        //let owner_name = dict.get("ownerName").unwrap().as_string().unwrap(); // owner_name exists only on lan worlds
+                        //let owner_name = dict.get("ownerName").unwrap().as_string().unwrap(); // owner_name exists only on lan worlds(?)
     
                         println!("worldID: {world_id}");
 
@@ -254,8 +257,8 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         // request chat messages
                         send_data(&[0x05].to_vec(), sender.clone(), 0).unwrap();
 
-                        sleep(Duration::from_secs(3));
-                        send_data(&[0x0e].to_vec(), sender.clone(), 0).unwrap();
+                        //sleep(Duration::from_secs(3));
+                        //send_data(&[0x0e].to_vec(), sender.clone(), 0).unwrap();
 
                         let fragment_req = [0x03, 0x6d, 0x2e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
 
@@ -293,10 +296,14 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         //println!("blocks: {:?}", blocks_str);
                         //println!("light blocks: {:?}", light_blocks);
 
-                        print_chunk(blocks);
+                        //print_chunk(blocks);
 
                         world_fragment_plist.to_file_xml("./0x04.xml").unwrap();
                     },
+                    0x17 => { // WorldHeartbeat
+                        let heartbeat_info = WorldHeartbeat::decode(packet_info.raw_data);
+                        println!("HeartbeatInfo: {:?}", heartbeat_info);
+                    }
                     0x1e => { // player list
                         let cursor = Cursor::new(&packet_info.raw_data);
         
@@ -311,11 +318,11 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
 
                         message_history.to_file_xml("./message_history.xml").unwrap();
                     },
-                    0x0f => {
-                        print!("0x0f response: [{}]", packet_info.hex_string);
-                        send_data(&[0x0a, 0x18, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc8, 0xe8, 0x2f, 0xd0, 0xcc, 0x00, 0x05, 0xeb, 0x75, 0x19, 0x18, 0x9e, 0x33, 0x01, 0x19, 0x75, 0x79, 0x27, 0x18, 0x37, 0x7b, 0xbb, 0x32, 0x32, 0x31, 0x30, 0x5d, 0xec, 0x48, 0xff, 0x3f, 0x41, 0x43, 0xf4, 0xbf, 0x45, 0xce, 0x9a, 0xff, 0x6b, 0xc4, 0x8d, 0xff, 0x33, 0xa0, 0x01, 0x71, 0x86, 0x7a, 0x38, 0x3b, 0x09, 0x6a, 0xe8, 0x45, 0x46, 0xa6, 0x90, 0xbc, 0xc4, 0xdc, 0xd4, 0x70, 0x5f, 0xc7, 0x90, 0x10, 0x0f, 0xd7, 0x70, 0x0e, 0x6e, 0x01, 0x88, 0x02, 0x46, 0x46, 0xa8, 0x4a, 0x66, 0x34, 0x53, 0x24, 0x38, 0xb8, 0xd0, 0x54, 0x30, 0xa1, 0xa9, 0x98, 0x00, 0x00, 0x34, 0x7a, 0x56, 0xc5, 0xb2, 0x00, 0x00, 0x00
-                            ].to_vec(), sender.clone(), 0).unwrap();
-                    }
+                    //0x0f => {
+                    //    print!("0x0f response: [{}]", packet_info.hex_string);
+                    //    send_data(&[0x0a, 0x18, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc8, 0xe8, 0x2f, 0xd0, 0xcc, 0x00, 0x05, 0xeb, 0x75, 0x19, 0x18, 0x9e, 0x33, 0x01, 0x19, 0x75, 0x79, 0x27, 0x18, 0x37, 0x7b, 0xbb, 0x32, 0x32, 0x31, 0x30, 0x5d, 0xec, 0x48, 0xff, 0x3f, 0x41, 0x43, 0xf4, 0xbf, 0x45, 0xce, 0x9a, 0xff, 0x6b, 0xc4, 0x8d, 0xff, 0x33, 0xa0, 0x01, 0x71, 0x86, 0x7a, 0x38, 0x3b, 0x09, 0x6a, 0xe8, 0x45, 0x46, 0xa6, 0x90, 0xbc, 0xc4, 0xdc, 0xd4, 0x70, 0x5f, 0xc7, 0x90, 0x10, 0x0f, 0xd7, 0x70, 0x0e, 0x6e, 0x01, 0x88, 0x02, 0x46, 0x46, 0xa8, 0x4a, 0x66, 0x34, 0x53, 0x24, 0x38, 0xb8, 0xd0, 0x54, 0x30, 0xa1, 0xa9, 0x98, 0x00, 0x00, 0x34, 0x7a, 0x56, 0xc5, 0xb2, 0x00, 0x00, 0x00
+                    //        ].to_vec(), sender.clone(), 0).unwrap();
+                    //}
                     0x6 => { // blockheads data
                         // First 125 bytes are ?????
                         // Rest are plist
@@ -339,7 +346,8 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         //fs::write("./6_2.xml", data).unwrap();
                     },
                     0x07 => {
-                        let unknown_value = packet_info.raw_data[0];
+                        println!("DynamicObject packet!");
+                        let string_object_type = DynamicObjectHandler::get_name_from_id(packet_info.raw_data[0]);
                         let mut decoder = Decoder::new(&packet_info.raw_data[1..]).unwrap();
                         let mut buffer = Vec::new();
                         decoder.read_to_end(&mut buffer).unwrap();
@@ -347,13 +355,41 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         let mut cursor = Cursor::new(buffer);
                         let property_list = plist::Value::from_reader(&mut cursor).unwrap();
 
-                        println!("unknown value: {:02x}", unknown_value);
+                        println!("Server told client to create DynamicObjects!: Type:{}", string_object_type);
                         let property_array = property_list.as_array().unwrap();
 
                         //println!("{}", packet_info.hex_string);
 
                         for data in property_array {
-                            println!("{:02x?}", data.as_data().unwrap());
+                            let data = data.as_data().unwrap();
+                            println!("DynamicObject: {:02x?}", data);
+                            match data.get(56) {
+                                Some(val) => {
+                                    if val != &0x1fu8 { continue };
+                                    let decoded = GZIP::decode(&data[56..].to_vec()).unwrap();
+                                    println!("decoded: {:02?}", decoded);
+                                    let cursor = Cursor::new(decoded);
+                                    let p_list = plist::Value::from_reader(cursor).unwrap();
+                                    println!("plist: {:?}", p_list)
+                                },
+                                None => ()
+                            };
+                        }
+                    }
+                    0x08 => {
+                        let string_object_type = DynamicObjectHandler::get_name_from_id(packet_info.raw_data[0]);
+                        let decoded = GZIP::decode(&packet_info.raw_data[1..].to_vec()).unwrap();
+
+                        println!("Server told client to update DynamicObjects!: Type:{}", string_object_type);
+
+                        let mut cursor = Cursor::new(decoded);
+                        let property_list = plist::Value::from_reader(&mut cursor).unwrap();
+                        let property_array = property_list.as_array().unwrap();
+
+                        //println!("{}", packet_info.hex_string);
+
+                        for data in property_array {
+                            println!("DynamicObject: {:02x?}", data.as_data().unwrap());
                         }
                     }
                     0x09 => {
@@ -364,6 +400,8 @@ pub fn start(ip: Ipv4Addr, port: u16, clientinfo: ClientInformation) {
                         //decoder.read_to_end(&mut buffer).unwrap();
 
                         //println!("decoded: {:02x?}", buffer);
+                        let data = [0x18].to_vec();
+                        send_data(&data, sender.clone(), 0).unwrap();
                     },
                     _ => println!("Unhandled packet! Hex [{}]", packet_info.hex_string)
                 }
