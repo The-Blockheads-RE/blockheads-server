@@ -305,18 +305,18 @@ impl Block {
         let mut encoded_block = [0; 64].to_vec();
 
         let artificial_light_r_bytes = self.artificial_light_r.get().to_be_bytes();
-        let artificial_light_g_bytes = self.artificial_light_g.get().to_be_bytes();
-        let artificial_light_b_bytes = self.artificial_light_b.get().to_be_bytes();
-        let artificial_heat_bytes = self.artificial_heat.get().to_be_bytes();
+        let artificial_light_g_bytes = self.artificial_light_g.get().to_le_bytes();
+        let artificial_light_b_bytes = self.artificial_light_b.get().to_le_bytes();
+        let artificial_heat_bytes = self.artificial_heat.get().to_le_bytes();
 
-        let dynamic_object_owner_old_bytes = self.dynamic_object_owner_old.get().to_be_bytes();
-        let dynamic_object_owner_bytes = self.dynamic_object_owner.get().to_be_bytes();
+        let dynamic_object_owner_old_bytes = self.dynamic_object_owner_old.get().to_le_bytes();
+        let dynamic_object_owner_bytes = self.dynamic_object_owner.get().to_le_bytes();
 
-        let paint_front_bytes = self.paint_front.get().to_be_bytes();
-        let paint_top_bytes = self.paint_top.get().to_be_bytes();
-        let paint_right_bytes = self.paint_right.get().to_be_bytes();
-        let paint_left_bytes = self.paint_left.get().to_be_bytes();
-        let paint_bottom_bytes = self.paint_bottom.get().to_be_bytes();
+        let paint_front_bytes = self.paint_front.get().to_le_bytes();
+        let paint_top_bytes = self.paint_top.get().to_le_bytes();
+        let paint_right_bytes = self.paint_right.get().to_le_bytes();
+        let paint_left_bytes = self.paint_left.get().to_le_bytes();
+        let paint_bottom_bytes = self.paint_bottom.get().to_le_bytes();
 
         encoded_block[0] = self.type_index.get();
         encoded_block[1] = self.back_wall_type_index.get();
@@ -386,18 +386,18 @@ impl Block {
             terrain_slow_factor: Cell::new(raw_data[10]),
             foreground_contents: Cell::new(raw_data[11]),
             background_contents: Cell::new(raw_data[12]),
-            artificial_light_r: Cell::new(u16::from_be_bytes([raw_data[13], raw_data[14]])),
-            artificial_light_g: Cell::new(u16::from_be_bytes([raw_data[15], raw_data[16]])),
-            artificial_light_b: Cell::new(u16::from_be_bytes([raw_data[17], raw_data[18]])),
-            artificial_heat: Cell::new(i16::from_be_bytes([raw_data[19], raw_data[20]])),
+            artificial_light_r: Cell::new(u16::from_le_bytes([raw_data[13], raw_data[14]])),
+            artificial_light_g: Cell::new(u16::from_le_bytes([raw_data[15], raw_data[16]])),
+            artificial_light_b: Cell::new(u16::from_le_bytes([raw_data[17], raw_data[18]])),
+            artificial_heat: Cell::new(i16::from_le_bytes([raw_data[19], raw_data[20]])),
             on_fire: Cell::new(raw_data[21]),
-            dynamic_object_owner_old: Cell::new(u32::from_be_bytes([raw_data[22], raw_data[23], raw_data[24], raw_data[25]])),
-            paint_front: Cell::new(u16::from_be_bytes([raw_data[26], raw_data[27]])),
-            paint_top: Cell::new(u16::from_be_bytes([raw_data[28], raw_data[29]])),
-            paint_right: Cell::new(u16::from_be_bytes([raw_data[30], raw_data[31]])),
-            paint_left: Cell::new(u16::from_be_bytes([raw_data[32], raw_data[33]])),
-            paint_bottom: Cell::new(u16::from_be_bytes([raw_data[34], raw_data[35]])),
-            dynamic_object_owner: Cell::new(u64::from_be_bytes([raw_data[36], raw_data[37], raw_data[38], raw_data[39], raw_data[40], raw_data[41], raw_data[42], raw_data[43]])),
+            dynamic_object_owner_old: Cell::new(u32::from_le_bytes([raw_data[22], raw_data[23], raw_data[24], raw_data[25]])),
+            paint_front: Cell::new(u16::from_le_bytes([raw_data[26], raw_data[27]])),
+            paint_top: Cell::new(u16::from_le_bytes([raw_data[28], raw_data[29]])),
+            paint_right: Cell::new(u16::from_le_bytes([raw_data[30], raw_data[31]])),
+            paint_left: Cell::new(u16::from_le_bytes([raw_data[32], raw_data[33]])),
+            paint_bottom: Cell::new(u16::from_le_bytes([raw_data[34], raw_data[35]])),
+            dynamic_object_owner: Cell::new(u64::from_le_bytes([raw_data[36], raw_data[37], raw_data[38], raw_data[39], raw_data[40], raw_data[41], raw_data[42], raw_data[43]])),
         }
     }
     pub fn new() -> Self { // Creates an empty block
