@@ -11,9 +11,12 @@ use handlers::server;
 use handlers::ServerInformation::ServerInformation;
 use handlers::client;
 use handlers::client::ClientInformation;
+use handlers::dynamic_objects::DynamicObjectHandler;
 
 use macroquad::{prelude::*};
 use macroquad::ui::{root_ui};
+use crate::handlers::dynamic_objects::free_block::{FreeBlock, ItemType};
+use crate::handlers::dynamic_objects::{DynamicObject, unbox_dynamic_object};
 
 const PIXEL_SIZE: f32 = 20.0;
 const TEXT_X_POSITION: f32 = (CHUNK_WIDTH as f32) * PIXEL_SIZE;
@@ -129,7 +132,8 @@ async fn render(chunk: &Chunk) {
             draw_text(&format!("dynamic_object_owner '{}'", block.dynamic_object_owner.get()), TEXT_X_POSITION, 520.0, font_size, BLACK);
 
             if is_mouse_button_down(MouseButton::Left) {
-                block.type_index.set(16);
+                //block.type_index.set(16);
+                block.sub_type_index.set(46);
             }
         },
         None => ()
@@ -141,14 +145,14 @@ async fn render(chunk: &Chunk) {
         println!("save");
 
         let data = chunk.encode();
-        fs::write("./modified_chunk", data).unwrap();
+        fs::write("./block_109_27", data).unwrap();
     };
 
     draw_rectangle(mouse_x, mouse_y, 10.0, 10.0, BLACK);
 }
 
 async fn gui() {
-    let blocks = fs::read("./block_109_27").unwrap();
+    let blocks = fs::read("./block_109_27_unmodified").unwrap();
     let chunk = Chunk::decode(blocks);
     chunk.print();
 
@@ -162,6 +166,8 @@ async fn gui() {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let raw_data = [0xe1, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x2d, 0x00, 0x00, 0xed, 0x02, 0x00, 0x00, 0x00, 0x9a, 0x2c, 0x8f, 0x01, 0x93, 0x6b, 0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf4, 0xff, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00].to_vec();
+
     let args: Vec<String> = env::args().collect();
 
     let mode = match args.get(1) {

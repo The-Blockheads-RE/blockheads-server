@@ -13,15 +13,16 @@ use base64::prelude::BASE64_STANDARD;
 
 use colored::Colorize;
 
-use libflate::gzip::*;
-
 use plist::{Data, Date, Dictionary, Value};
 use plist::Integer;
 use plist;
 use crate::handlers::chunk::Chunk;
-use crate::handlers::DynamicObject::DynamicObject;
+use crate::handlers::dynamic_objects::{DynamicObject, DynamicObjectHandler};
 use crate::handlers::ServerInformation::ServerInformation;
 use crate::handlers::WorldHeartbeat::WorldHeartbeat;
+use crate::handlers::Compression::GZIP;
+use crate::handlers::dynamic_objects::free_block::{FreeBlock, ItemType};
+use crate::handlers::dynamic_objects::workbench::{InteractionObjectType, Workbench, WorkbenchType};
 
 struct PacketInfo {
     packet_type: u8,
@@ -66,22 +67,8 @@ fn encode_world_fragment(x: i8, y: i8) -> Vec<u8> {
     //let dummy_blocks = fs::read("./modified_chunk").unwrap();
     let dummy_light_blocks = fs::read("./light_block_109_27").unwrap();
 
-    //print_chunk(dummy_blocks.clone());
-
-    let mut blocks_encoder: Encoder<Vec<u8>> = Encoder::new(Vec::new()).unwrap();
-    blocks_encoder.write_all(&dummy_blocks).unwrap();
-    let blocks_gzipped = blocks_encoder.finish().into_result().unwrap();
-
-    let mut light_blocks_encoder: Encoder<Vec<u8>> = Encoder::new(Vec::new()).unwrap();
-    light_blocks_encoder.write_all(&dummy_light_blocks).unwrap();
-    let light_blocks_gzipped = light_blocks_encoder.finish().into_result().unwrap();
-
-    let curs = Cursor::new(&blocks_gzipped);
-    let mut decod = Decoder::new(curs).unwrap();
-    let mut res = Vec::new();
-    decod.read_to_end(&mut res).unwrap();
-
-    assert_eq!(res, dummy_blocks);
+    let blocks_gzipped = GZIP::encode(&dummy_blocks).unwrap();
+    let light_blocks_gzipped = GZIP::encode(&dummy_light_blocks).unwrap();
 
     let mut fragment_dictionary = plist::Dictionary::new();
     fragment_dictionary.insert(
@@ -304,24 +291,50 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                         send_data(&fragment_data, sender.clone(), 0).unwrap();
                         //println!("sent fragment: {}", {bytes_to_hex_string(&fragment_data)});
 
-                        let obj_data: Vec<u8> = [0x07, 0x0e, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc6, 0xc8, 0xc4, 0xcc, 0xc2, 0xca, 0xe6, 0x2f, 0x60, 0x91, 0xc7, 0xcb, 0x00, 0x06, 0x7b, 0x74, 0x19, 0x18, 0xde, 0x33, 0x01, 0x19, 0xd9, 0x1f, 0xa6, 0x35, 0x46, 0x08, 0x85, 0x32, 0x40, 0x81, 0x34, 0xc3, 0x76, 0x86, 0xeb, 0x0c, 0x5f, 0xfe, 0xc3, 0xf8, 0x0c, 0x8c, 0x0c, 0x6f, 0x19, 0x81, 0x14, 0x50, 0x6b, 0x3e, 0x54, 0xeb, 0x5e, 0x9c, 0x5a, 0x77, 0x33, 0x5c, 0xc6, 0xae, 0xb5, 0x00, 0xaa, 0x75, 0x3b, 0x50, 0xeb, 0x4b, 0x1c, 0x5a, 0x2f, 0x61, 0xd7, 0x5a, 0x08, 0xd5, 0xba, 0x13, 0xa8, 0xf5, 0x03, 0x0e, 0xad, 0x17, 0xb1, 0x6b, 0x2d, 0x82, 0x6a, 0xdd, 0x0d, 0xd4, 0xfa, 0x09, 0xab, 0xd6, 0x7d, 0xb8, 0x1c, 0x7c, 0x8d, 0x0f, 0x11, 0x4c, 0xaf, 0x40, 0x5a, 0x0b, 0x3e, 0x4c, 0x6d, 0x3c, 0x9a, 0xdd, 0x88, 0xd0, 0xba, 0x03, 0x3d, 0x98, 0x58, 0x40, 0x5a, 0x19, 0x38, 0x18, 0xf8, 0x19, 0xbc, 0x18, 0x5a, 0x19, 0x0e, 0x30, 0xfc, 0x66, 0x34, 0x83, 0x48, 0x31, 0x31, 0x42, 0xd5, 0xb0, 0x33, 0xa0, 0x00, 0xc6, 0x42, 0x00, 0xb8, 0xe4, 0x4d, 0xa6, 0x9f, 0x01, 0x00, 0x00].to_vec();
-                        send_data(&obj_data, sender.clone(), 0).unwrap();
+                        let spawn_portal = Workbench {
+                            unique_id: 6111,
+                            x: 11695,
+                            y: 743,
 
-                        send_data(
-                            &[0x07, 0x2d, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc8, 0xe8, 0x2f, 0x90, 0xb8, 0x9b, 0x01, 0x02, 0xd6, 0xeb, 0x32, 0x30, 0x3c, 0x67, 0x62, 0xc0, 0x00, 0x8c, 0x60, 0xb2, 0xe0, 0x38, 0xba, 0x88, 0x7c, 0x37, 0x07, 0x84, 0x2b, 0xec, 0xad, 0x75, 0xe2, 0xa4, 0x8e, 0x9e, 0xa1, 0xc1, 0x8e, 0x03, 0x07, 0x19, 0xd8, 0x7a, 0x7a, 0x78, 0x02, 0xd8, 0x98, 0xb5, 0x1e, 0xb0, 0x30, 0x58, 0xf4, 0x1b, 0xcf, 0xd3, 0x02, 0xca, 0x73, 0x70, 0x41, 0xb5, 0x31, 0x42, 0xf5, 0xa3, 0x5b, 0x92, 0x07, 0x00, 0x31, 0xbc, 0x6a, 0x65, 0x90, 0x00, 0x00, 0x00].to_vec(),
-                            sender.clone(),
-                            0
-                        ).unwrap();
-                        send_data(
-                            &[0x07, 0x0e, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc2, 0xc8, 0xc4, 0xcc, 0xe2, 0x2f, 0x60, 0xa1, 0x23, 0xce, 0x00, 0x06, 0x7b, 0x74, 0x19, 0x18, 0xde, 0x33, 0x01, 0x19, 0x85, 0xfc, 0x2f, 0x18, 0x19, 0x10, 0x40, 0x9a, 0x61, 0x2f, 0xc3, 0x15, 0x86, 0x2f, 0xff, 0xe1, 0x02, 0x8c, 0x60, 0xc4, 0x00, 0xd4, 0xaa, 0x0b, 0xd5, 0xba, 0x17, 0x8f, 0xd6, 0x0b, 0xd8, 0xb5, 0x5e, 0x86, 0x6a, 0xdd, 0x0d, 0xd4, 0xfa, 0x04, 0x8b, 0x56, 0x16, 0x06, 0x4c, 0x00, 0xd5, 0x7a, 0x05, 0xc9, 0xd6, 0xc7, 0x78, 0xb5, 0x32, 0xa1, 0x68, 0xe5, 0xe0, 0xf5, 0x68, 0xde, 0x07, 0xe5, 0xc2, 0xd4, 0xb3, 0xa2, 0x59, 0xf1, 0x13, 0x00, 0xb3, 0xa0, 0x75, 0x45, 0x1e, 0x01, 0x00, 0x00].to_vec(),
-                            sender.clone(),
-                            0
-                        ).unwrap();
-                        send_data(
-                            &[0x07, 0x0e, 0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x4b, 0x2a, 0xc8, 0xc9, 0x2c, 0x2e, 0x31, 0x30, 0x58, 0xc8, 0xe8, 0x2f, 0x60, 0xf1, 0x50, 0x9c, 0x01, 0x0c, 0xf6, 0xe8, 0x32, 0x30, 0xbc, 0x65, 0x02, 0x32, 0x66, 0xe9, 0xf4, 0x33, 0x4e, 0xce, 0x4e, 0x62, 0x80, 0x02, 0x16, 0x30, 0xf9, 0xe5, 0x3f, 0x03, 0x43, 0x3d, 0x03, 0x32, 0xe0, 0xe0, 0x82, 0xd0, 0x8c, 0x8c, 0x50, 0x01, 0x26, 0x06, 0x54, 0xe0, 0x0a, 0x00, 0x0c, 0x35, 0xa1, 0x01, 0x67, 0x00, 0x00, 0x00].to_vec(),
-                            sender.clone(),
-                            0
-                        ).unwrap();
+                            interaction_object_type: InteractionObjectType::Workbench as u8,
+                            object_type: WorkbenchType::BasicPortal as u8,
+                            object_variant: 0
+                        };
+                        let mut compressed_data = spawn_portal.encode_and_compress();
+                        compressed_data.insert(0, 7);
+                        send_data(&compressed_data, sender.clone(), 0).unwrap();
+
+                        // 2
+                        let new_workbench = Workbench {
+                            unique_id: 6112,
+                            x: 11697,
+                            y: 742,
+
+                            interaction_object_type: InteractionObjectType::Workbench as u8,
+                            object_type: WorkbenchType::Workbench as u8,
+                            object_variant: 1
+                        };
+                        let mut compressed_data = new_workbench.encode_and_compress();
+                        compressed_data.insert(0, 7);
+                        send_data(&compressed_data, sender.clone(), 0).unwrap();
+
+                        let new_freeblock = FreeBlock {
+                            x: 11695,
+                            y: 745,
+                            unique_id: 6113,
+
+                            item_type: ItemType::WorkbenchWorkbench as u16,
+                            data_a: 10000,
+                            data_b: 0,
+                            fall_speed: 0,
+                            x_velocity: 0,
+                            y_velocity: 0,
+                            has_subitems: false,
+                            hovers: true
+                        };
+                        let mut compressed_data = new_freeblock.encode_and_compress();
+                        compressed_data.insert(0, 0x07);
+                        send_data(&compressed_data, sender.clone(), 0).unwrap();
                     }
                     0x05 => { // always empty supposedly
                         let mut test_messages = Vec::new();
@@ -401,9 +414,9 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                     },
                     0x18 => {
                         let heartbeat = WorldHeartbeat {
-                            world_time: 92.0,
+                            world_time: 3600.0,
                             no_rain_timer: 0.0,
-                            fast_forward: true,
+                            fast_forward: false,
                             local_paused: false,
                             all_paused: false,
                             pvp_disabled: false,
@@ -415,14 +428,30 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
 
                         send_data(&data, sender.clone(), 0).unwrap();
                     },
+                    0x35 => { // resend welcome message
+                        let mut server_information_plist = plist::Dictionary::new();
+
+                        match &server_info.welcome_message {
+                            Some(welcome_message) => {
+                                server_information_plist.insert(
+                                    String::from("welcomeMessage"),
+                                    Value::String(welcome_message.clone())
+                                );
+                            }
+                            None => ()
+                        };
+
+                        let mut cursor: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+                        plist::to_writer_binary(&mut cursor, &server_information_plist).unwrap();
+                        let mut uncompressed_data = cursor.into_inner();
+                        uncompressed_data.insert(0, 0x36);
+
+                        send_data(&uncompressed_data, sender.clone(), 0).unwrap()
+                    }
                     0x0b => { // unknown
                         let first_byte = packet_info.raw_data[0];
 
-                        let curs = Cursor::new(&packet_info.raw_data[1..]);
-                        let mut decod = Decoder::new(curs).unwrap();
-                        let mut res = Vec::new();
-                        decod.read_to_end(&mut res).unwrap();
-
+                        let res = GZIP::decode(&packet_info.raw_data[1..].to_vec()).unwrap();
                         let cursor = Cursor::new(res);
                         let p_list = plist::Value::from_reader(cursor).unwrap();
 
@@ -435,10 +464,7 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                         };
                     }
                     0x20 => { // UpdatePlayerActionsAndState
-                        let curs = Cursor::new(&packet_info.raw_data);
-                        let mut decod = Decoder::new(curs).unwrap();
-                        let mut res = Vec::new();
-                        decod.read_to_end(&mut res).unwrap();
+                        let res = GZIP::decode(&packet_info.raw_data).unwrap();
 
                         let cursor = Cursor::new(res);
                         let p_list = plist::Value::from_reader(cursor).unwrap();
@@ -449,15 +475,11 @@ pub fn start(ip: Ipv4Addr, port: u16, server_info: ServerInformation) {
                     }
                     0x0a => { // request create dynamic objects
                         let dynamic_object_type_id = packet_info.raw_data[0];
-                        let string_object_type = DynamicObject::get_name_from_id(dynamic_object_type_id);
+                        let string_object_type = DynamicObjectHandler::get_name_from_id(dynamic_object_type_id);
 
                         println!("client wants to create dynamic objects! [type:{}]", string_object_type);
 
-                        let curs = Cursor::new(&packet_info.raw_data[1..]);
-                        let mut decod = Decoder::new(curs).unwrap();
-                        let mut res = Vec::new();
-                        decod.read_to_end(&mut res).unwrap();
-
+                        let res = GZIP::decode(&packet_info.raw_data[1..].to_vec()).unwrap();
                         let cursor = Cursor::new(res);
                         let p_list = plist::Value::from_reader(cursor).unwrap();
 

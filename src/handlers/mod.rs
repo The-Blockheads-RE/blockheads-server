@@ -5,5 +5,6 @@ pub mod block;
 pub mod KickReason;
 pub mod WorldHeartbeat;
 pub mod ServerInformation;
-mod DynamicObject;
+pub mod dynamic_objects;
+mod Compression;
 //pub mod packet_handler;
