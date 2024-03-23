@@ -3,6 +3,7 @@
 use std::{env, fs};
 
 use std::net::Ipv4Addr;
+use std::str::FromStr;
 
 pub mod handlers;
 
@@ -32,9 +33,37 @@ fn window_conf() -> Conf {
     }
 }
 
-async fn render(chunk: &Chunk) {
-    clear_background(BLUE);
+use macroquad::prelude::*;
+use macroquad::ui::*;
+use macroquad::ui::widgets::Checkbox;
+use macroquad::window::*;
+use crate::handlers::block::Block;
 
+const TILE_SIZE: i32 = 20;
+const CHUNK_VIEWPORT_WIDTH: i32 = (TILE_SIZE * 32);
+const CHUNK_VIEWPORT_HEIGHT: i32 = (TILE_SIZE * 32);
+const DATA_VIEW_WIDTH: i32 = 400;
+const DATA_VIEW_HEIGHT: i32 = 335;
+const WINDOW_WIDTH: i32 = CHUNK_VIEWPORT_WIDTH + DATA_VIEW_WIDTH;
+const WINDOW_HEIGHT: i32 = CHUNK_VIEWPORT_HEIGHT;
+const GRID_THICKNESS: f32 = 0.4;
+
+fn render_grid() {
+    let mut render_color = BLACK;
+    render_color.a = 0.6;
+
+    let mut y = 0;
+    while y < CHUNK_HEIGHT {
+        let mut x = 0;
+        while x < CHUNK_WIDTH {
+            draw_rectangle((x as f32) * PIXEL_SIZE, 0.0, GRID_THICKNESS, 1000.0, render_color);
+            x += 1
+        }
+        draw_rectangle(0.0, (y as f32) * PIXEL_SIZE, 1000.0, GRID_THICKNESS, render_color);
+        y += 1
+    }
+}
+fn render_chunk(chunk: &Chunk) {
     let mut y: usize = 0;
 
     let mut row_buffer = Vec::new();
@@ -70,7 +99,7 @@ async fn render(chunk: &Chunk) {
             let mut background_color = block.get_back_wall_color();
             background_color.a = 0.7;
 
-            let pos = Vec2::new(f_x * PIXEL_SIZE, (f_y * PIXEL_SIZE) + 0.0);
+            let pos = Vec2::new(f_x * PIXEL_SIZE, f_y * PIXEL_SIZE);
 
             draw_rectangle(pos.x, pos.y, PIXEL_SIZE, PIXEL_SIZE, background_color);
             draw_rectangle(pos.x, pos.y, PIXEL_SIZE, PIXEL_SIZE, block.get_color());
@@ -84,82 +113,129 @@ async fn render(chunk: &Chunk) {
 
         y += 1;
     }
+}
+async fn render2() {
+    let mut write_type_id = String::from("16");
+    let mut write_subtype_id = String::from("0");
 
-    let (mouse_x, mouse_y) = mouse_position();
-    let hit_mouse_x = (mouse_x / PIXEL_SIZE).floor();
-    let hit_mouse_y = (((mouse_y) / PIXEL_SIZE)).floor();
+    let mut write_type_enabled = false;
+    let mut write_subtype_enabled = false;
 
-    let block_option = chunk.get_block(
-        hit_mouse_x as usize,
-        ((CHUNK_HEIGHT as f32) - hit_mouse_y - 1.0) as usize,
-    );
+    let mut save_path = String::from("./modified_chunk");
+    let mut open_chunk = Chunk::new();
 
-    match block_option {
-        Some(block) => {
-            let mut color = block.get_color();
-            let mut background_color = block.get_back_wall_color();
+    loop {
+        let (mouse_x, mouse_y) = mouse_position();
+        let hit_mouse_x = (mouse_x / PIXEL_SIZE).floor();
+        let hit_mouse_y = (((mouse_y) / PIXEL_SIZE)).floor();
 
-            color.a = 1.0;
-            background_color.a = 1.0;
+        clear_background(BLUE);
 
-            let font_size = 30.0;
+        root_ui().window(hash!(), Vec2::new(CHUNK_VIEWPORT_WIDTH as f32, 0.0), Vec2::new(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32), |ui| {
 
-            draw_text(&format!("mouse {}, {}", hit_mouse_x, hit_mouse_y), TEXT_X_POSITION, 20.0, font_size, BLACK);
-            draw_text(&format!("block '{}'", block.get_name()), TEXT_X_POSITION, 40.0, font_size, color);
-            draw_text(&format!("background '{}'", block.get_back_wall_name()), TEXT_X_POSITION, 60.0, font_size, background_color);
-            draw_text(&format!("zone_type '{}'", block.zone_type_index.get()), TEXT_X_POSITION, 80.0, font_size, BLACK);
-            draw_text(&format!("subtype '{}'", block.get_subtype_name()), TEXT_X_POSITION, 100.0, font_size, BLACK);
-            draw_text(&format!("partial_content_left '{}'", block.partial_contents_left.get()), TEXT_X_POSITION, 120.0, font_size, BLACK);
-            draw_text(&format!("damage '{}'", block.gather_progress.get()), TEXT_X_POSITION, 140.0, font_size, BLACK);
-            draw_text(&format!("light '{}'", block.light.get()), TEXT_X_POSITION, 160.0, font_size, BLACK);
-            draw_text(&format!("sun_light '{}'", block.sun_light.get()), TEXT_X_POSITION, 180.0, font_size, BLACK);
-            draw_text(&format!("season_offset '{}'", block.season_offset.get()), TEXT_X_POSITION, 200.0, font_size, BLACK);
-            draw_text(&format!("explored_fraction '{}'", block.explored_fraction.get()), TEXT_X_POSITION, 220.0, font_size, BLACK);
-            draw_text(&format!("terrain_slow_factor '{}'", block.terrain_slow_factor.get()), TEXT_X_POSITION, 240.0, font_size, BLACK);
-            draw_text(&format!("foreground_contents '{}'", block.foreground_contents.get()), TEXT_X_POSITION, 260.0, font_size, BLACK);
-            draw_text(&format!("background_contents '{}'", block.background_contents.get()), TEXT_X_POSITION, 280.0, font_size, BLACK);
-            draw_text(&format!("artificial_light_r '{}'", block.artificial_light_r.get()), TEXT_X_POSITION, 300.0, font_size, BLACK);
-            draw_text(&format!("artificial_light_g '{}'", block.artificial_light_g.get()), TEXT_X_POSITION, 320.0, font_size, BLACK);
-            draw_text(&format!("artificial_light_b '{}'", block.artificial_light_b.get()), TEXT_X_POSITION, 340.0, font_size, BLACK);
-            draw_text(&format!("artificial_heat '{}'", block.artificial_heat.get()), TEXT_X_POSITION, 360.0, font_size, BLACK);
-            draw_text(&format!("on_fire '{}'", block.on_fire.get()), TEXT_X_POSITION, 380.0, font_size, BLACK);
-            draw_text(&format!("dynamic_object_owner_old '{}'", block.dynamic_object_owner_old.get()), TEXT_X_POSITION, 400.0, font_size, BLACK);
-            draw_text(&format!("paint_front '{}'", block.paint_front.get()), TEXT_X_POSITION, 420.0, font_size, BLACK);
-            draw_text(&format!("paint_top '{}'", block.paint_top.get()), TEXT_X_POSITION, 440.0, font_size, BLACK);
-            draw_text(&format!("paint_right '{}'", block.paint_right.get()), TEXT_X_POSITION, 460.0, font_size, BLACK);
-            draw_text(&format!("paint_left '{}'", block.paint_left.get()), TEXT_X_POSITION, 480.0, font_size, BLACK);
-            draw_text(&format!("paint_bottom '{}'", block.paint_bottom.get()), TEXT_X_POSITION, 500.0, font_size, BLACK);
-            draw_text(&format!("dynamic_object_owner '{}'", block.dynamic_object_owner.get()), TEXT_X_POSITION, 520.0, font_size, BLACK);
+            widgets::Group::new(hash!(), Vec2::new(DATA_VIEW_WIDTH as f32, (DATA_VIEW_HEIGHT) as f32))
+                .position(Vec2::new(0.0, 0.0))
+                .ui(ui, |ui| {
+                    ui.label(Vec2::new(315.0, 0.0), &format!("[x={hit_mouse_x},y={hit_mouse_y}]"));
+                    let block_option = open_chunk.get_block(
+                        hit_mouse_x as usize,
+                        ((CHUNK_HEIGHT as f32) - hit_mouse_y - 1.0) as usize,
+                    );
 
-            if is_mouse_button_down(MouseButton::Left) {
-                //block.type_index.set(16);
-                block.sub_type_index.set(46);
-            }
-        },
-        None => ()
-    };
+                    match block_option {
+                        Some(block) => {
+                            ui.label(Vec2::new(0.0, 0.0), &format!("Block: '{}'", block.get_name()));
+                            ui.label(Vec2::new(0.0, 15.0), &format!("Background: '{}'", block.get_back_wall_name()));
+                            ui.label(Vec2::new(0.0, 30.0), &format!("ZoneType: '{}'", block.zone_type_index.get()));
+                            ui.label(Vec2::new(0.0, 45.0), &format!("Subtype: '{}'", block.get_subtype_name()));
+                            ui.label(Vec2::new(0.0, 60.0), &format!("PartialContentLeft: '{}'", block.partial_contents_left.get()));
+                            ui.label(Vec2::new(0.0, 75.0), &format!("GatherProgress: '{}'", block.gather_progress.get()));
+                            ui.label(Vec2::new(0.0, 90.0), &format!("Light: '{}'", block.light.get()));
+                            ui.label(Vec2::new(0.0, 105.0), &format!("SunLight: '{}'", block.sun_light.get()));
+                            ui.label(Vec2::new(0.0, 120.0), &format!("SeasonOffset: '{}'", block.season_offset.get()));
+                            ui.label(Vec2::new(0.0, 135.0), &format!("ExploredOffset: '{}'", block.explored_fraction.get()));
+                            ui.label(Vec2::new(0.0, 150.0), &format!("TerrainSlowFactor: '{}'", block.terrain_slow_factor.get()));
+                            ui.label(Vec2::new(0.0, 165.0), &format!("ForegroundContents: '{}'", block.foreground_contents.get()));
+                            ui.label(Vec2::new(0.0, 180.0), &format!("BackgroundContents: '{}'", block.background_contents.get()));
+                            ui.label(Vec2::new(0.0, 195.0), &format!("ArtificialLight: '({}, {}, {})'", block.artificial_light_r.get(), block.artificial_light_g.get(), block.artificial_light_b.get()));
+                            ui.label(Vec2::new(0.0, 210.0), &format!("OnFire: '{}'", block.on_fire.get() != 0));
+                            ui.label(Vec2::new(0.0, 225.0), &format!("DynamicObjectOwnerOld: '{}'", block.dynamic_object_owner_old.get()));
+                            ui.label(Vec2::new(0.0, 240.0), &format!("PaintFront: '{}'", block.paint_front.get()));
+                            ui.label(Vec2::new(0.0, 255.0), &format!("PaintTop: '{}'", block.paint_top.get()));
+                            ui.label(Vec2::new(0.0, 270.0), &format!("PaintRight: '{}'", block.paint_right.get()));
+                            ui.label(Vec2::new(0.0, 285.0), &format!("PaintLeft: '{}'", block.paint_left.get()));
+                            ui.label(Vec2::new(0.0, 300.0), &format!("PaintBottom: '{}'", block.paint_bottom.get()));
+                            ui.label(Vec2::new(0.0, 315.0), &format!("DynamicObjectOwner: '{}'", block.dynamic_object_owner.get()));
+                        },
+                        None => ()
+                    }
+                });
+            widgets::Group::new(hash!(), Vec2::new(DATA_VIEW_WIDTH as f32, (CHUNK_VIEWPORT_HEIGHT - DATA_VIEW_HEIGHT) as f32))
+                .position(Vec2::new(0.0, (DATA_VIEW_HEIGHT) as f32))
+                .ui(ui, |ui| {
+                    ui.label(None, "Placement settings");
 
-    let button_down = root_ui().button(Vec2::new(TEXT_X_POSITION, 530.0), "save to ./modified_chunk");
+                    let write_type_id_name = match u8::from_str(&write_type_id) {
+                        Ok(id) => Block::get_name_from_type_id(id),
+                        Err(_) => Block::get_name_from_type_id(0)
+                    };
+                    let write_subtype_id_name = match u8::from_str(&write_subtype_id) {
+                        Ok(id) => Block::get_name_from_subtype(id),
+                        Err(_) => Block::get_name_from_subtype(0)
+                    };
 
-    if button_down {
-        println!("save");
+                    ui.label(None, &format!("Type ID ({})", write_type_id_name));
+                    ui.editbox(hash!(), Vec2::new(100.0, 20.0), &mut write_type_id);
+                    ui.label(None, &format!("Subtype ID ({})", write_subtype_id_name));
+                    ui.editbox(hash!(), Vec2::new(100.0, 20.0), &mut write_subtype_id);
 
-        let data = chunk.encode();
-        fs::write("./block_109_27", data).unwrap();
-    };
+                    widgets::Group::new(hash!(), Vec2::new((DATA_VIEW_WIDTH / 2) as f32, (DATA_VIEW_HEIGHT / 2) as f32))
+                        .position(Vec2::new((DATA_VIEW_WIDTH / 2) as f32, 0.0))
+                        .ui(ui, |ui| {
+                            ui.label(None, "Path");
+                            ui.editbox(hash!(), Vec2::new(150.0, 20.0), &mut save_path);
+                            ui.checkbox(hash!(), &String::from("Type"), &mut write_type_enabled);
+                            ui.checkbox(hash!(), &String::from("Subtype"), &mut write_subtype_enabled);
+                            if ui.button(None, "Load") {
+                                println!("Load!");
+                                open_chunk = Chunk::decode(fs::read(&save_path).unwrap());
+                            }
+                            if ui.button(None, "Save") {
+                                println!("Save!");
+                            }
+                            if ui.button(None, "Save (new file)") {
+                                println!("Save new file!");
+                            }
+                        });
+                });
+        });
 
-    draw_rectangle(mouse_x, mouse_y, 10.0, 10.0, BLACK);
+        if is_mouse_button_down(MouseButton::Left) {
+            match open_chunk.get_block(
+                hit_mouse_x as usize,
+                ((CHUNK_HEIGHT as f32) - hit_mouse_y - 1.0) as usize,
+            ) {
+                Some(block) => {
+                    if write_type_enabled { block.type_index.set(u8::from_str(&write_type_id).unwrap()); };
+                    if write_subtype_enabled { block.sub_type_index.set(u8::from_str(&write_subtype_id).unwrap()); };
+                },
+                None => ()
+            };
+        };
+
+        render_chunk(&open_chunk);
+        render_grid();
+
+        next_frame().await;
+    }
 }
 
 async fn gui() {
     let blocks = fs::read("./block_109_27_unmodified").unwrap();
     let chunk = Chunk::decode(blocks);
-    chunk.print();
-
-    //root_ui().input_text(90, "input", &mut inp);
 
     loop {
-        render(&chunk).await;
+        render2().await;
         next_frame().await;
     }
 }
