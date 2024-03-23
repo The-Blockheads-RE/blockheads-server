@@ -116,9 +116,11 @@ fn render_chunk(chunk: &Chunk) {
 }
 async fn render2() {
     let mut write_type_id = String::from("16");
+    let mut write_background_type_id = String::from("2");
     let mut write_subtype_id = String::from("0");
 
     let mut write_type_enabled = false;
+    let mut write_background_type_enabled = false;
     let mut write_subtype_enabled = false;
 
     let mut save_path = String::from("./modified_chunk");
@@ -179,6 +181,10 @@ async fn render2() {
                         Ok(id) => Block::get_name_from_type_id(id),
                         Err(_) => Block::get_name_from_type_id(0)
                     };
+                    let write_background_type_id_name = match u8::from_str(&write_background_type_id) {
+                        Ok(id) => Block::get_name_from_type_id(id),
+                        Err(_) => Block::get_name_from_type_id(0)
+                    };
                     let write_subtype_id_name = match u8::from_str(&write_subtype_id) {
                         Ok(id) => Block::get_name_from_subtype(id),
                         Err(_) => Block::get_name_from_subtype(0)
@@ -186,6 +192,8 @@ async fn render2() {
 
                     ui.label(None, &format!("Type ID ({})", write_type_id_name));
                     ui.editbox(hash!(), Vec2::new(100.0, 20.0), &mut write_type_id);
+                    ui.label(None, &format!("Background Type ID ({})", write_background_type_id_name));
+                    ui.editbox(hash!(), Vec2::new(100.0, 20.0), &mut write_background_type_id);
                     ui.label(None, &format!("Subtype ID ({})", write_subtype_id_name));
                     ui.editbox(hash!(), Vec2::new(100.0, 20.0), &mut write_subtype_id);
 
@@ -195,6 +203,7 @@ async fn render2() {
                             ui.label(None, "Path");
                             ui.editbox(hash!(), Vec2::new(150.0, 20.0), &mut save_path);
                             ui.checkbox(hash!(), &String::from("Type"), &mut write_type_enabled);
+                            ui.checkbox(hash!(), &String::from("Background Type"), &mut write_background_type_enabled);
                             ui.checkbox(hash!(), &String::from("Subtype"), &mut write_subtype_enabled);
                             if ui.button(None, "Load") {
                                 println!("Load!");
@@ -219,6 +228,7 @@ async fn render2() {
             ) {
                 Some(block) => {
                     if write_type_enabled { block.type_index.set(u8::from_str(&write_type_id).unwrap()); };
+                    if write_background_type_enabled { block.back_wall_type_index.set(u8::from_str(&write_background_type_id).unwrap()); };
                     if write_subtype_enabled { block.sub_type_index.set(u8::from_str(&write_subtype_id).unwrap()); };
                 },
                 None => ()
