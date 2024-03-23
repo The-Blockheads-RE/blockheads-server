@@ -27,7 +27,7 @@ Running the project through cargo, specifying client/server/gui.
 
     cargo run server
 
-See also the list of [contributors](https://github.com/The-Blokcheads-RE/blockheads-server/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/The-Blockheads-RE/blockheads-server/contributors) who participated in this project.
 
 ## License
 
