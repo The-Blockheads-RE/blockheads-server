@@ -202,10 +202,12 @@ async fn render2() {
                             }
                             if ui.button(None, "Save") {
                                 println!("Save!");
+                                let chunk_data = open_chunk.encode();
+                                fs::write(&save_path, chunk_data).unwrap();
                             }
-                            if ui.button(None, "Save (new file)") {
+                            /*if ui.button(None, "Save (new file)") {
                                 println!("Save new file!");
-                            }
+                            }*/
                         });
                 });
         });
